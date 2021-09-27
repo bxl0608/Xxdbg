@@ -9,7 +9,7 @@ public class UnicornBackend implements IBackend {
 
 
     public UnicornBackend(boolean is632Bit) {
-        unicorn = new Unicorn(is632Bit ? Unicorn.UC_ARCH_ARM : Unicorn.UC_ARCH_ARM, Unicorn.UC_MODE_THUMB);
+        unicorn = new Unicorn(is632Bit ? Unicorn.UC_ARCH_ARM : Unicorn.UC_ARCH_ARM64, Unicorn.UC_MODE_THUMB);
     }
 
     public Number reg_read(int regId) throws BackendException {
@@ -29,23 +29,23 @@ public class UnicornBackend implements IBackend {
     }
 
     public byte[] mem_read(long address, long size) throws BackendException {
-        return unicorn.mem_read(address,size);
+        return unicorn.mem_read(address, size);
     }
 
     public void mem_write(long address, byte[] bytes) throws BackendException {
-        unicorn.mem_write(address,bytes);
+        unicorn.mem_write(address, bytes);
     }
 
     public void mem_map(long address, long size, int perms) throws BackendException {
-        unicorn.mem_map(address,size,perms);
+        unicorn.mem_map(address, size, perms);
     }
 
     public void mem_protect(long address, long size, int perms) throws BackendException {
-        unicorn.mem_protect(address,size,perms);
+        unicorn.mem_protect(address, size, perms);
     }
 
     public void mem_unmap(long address, long size) throws BackendException {
-        unicorn.mem_unmap(address,size);
+        unicorn.mem_unmap(address, size);
     }
 
     public boolean removeBreakPoint(long address) {
@@ -61,35 +61,35 @@ public class UnicornBackend implements IBackend {
     }
 
     public void hook_add_new(CodeHook callback, long begin, long end, Object user_data) throws BackendException {
-        unicorn.hook_add_new(callback,begin,end,user_data);
+        unicorn.hook_add_new(callback, begin, end, user_data);
     }
 
     public void debugger_add(DebugHook callback, long begin, long end, Object user_data) throws BackendException {
-        unicorn.debugger_add(callback,begin,end,user_data);
+        unicorn.debugger_add(callback, begin, end, user_data);
     }
 
     public void hook_add_new(ReadHook callback, long begin, long end, Object user_data) throws BackendException {
-        unicorn.hook_add_new(callback,begin,end,user_data);
+        unicorn.hook_add_new(callback, begin, end, user_data);
     }
 
     public void hook_add_new(WriteHook callback, long begin, long end, Object user_data) throws BackendException {
-        unicorn.hook_add_new(callback,begin,end,user_data);
+        unicorn.hook_add_new(callback, begin, end, user_data);
     }
 
     public void hook_add_new(EventMemHook callback, int type, Object user_data) throws BackendException {
-        unicorn.hook_add_new(callback,type,user_data);
+        unicorn.hook_add_new(callback, type, user_data);
     }
 
     public void hook_add_new(InterruptHook callback, Object user_data) throws BackendException {
-        unicorn.hook_add_new(callback,user_data);
+        unicorn.hook_add_new(callback, user_data);
     }
 
     public void hook_add_new(BlockHook callback, long begin, long end, Object user_data) throws BackendException {
-        unicorn.hook_add_new(callback,begin,end,user_data);
+        unicorn.hook_add_new(callback, begin, end, user_data);
     }
 
     public void emu_start(long begin, long until, long timeout, long count) throws BackendException {
-        unicorn.emu_start(begin,until,timeout,count);
+        unicorn.emu_start(begin, until, timeout, count);
     }
 
     public void emu_stop() throws BackendException {
