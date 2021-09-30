@@ -1,21 +1,21 @@
 package com.bxlong.xxdbg.android.emulater;
 
+import com.bxlong.xxdbg.backend.BackendType;
 import com.bxlong.xxdbg.backend.IBackend;
 import com.bxlong.xxdbg.backend.unicorn.UnicornBackend;
 import com.bxlong.xxdbg.memory.Memory;
+import com.bxlong.xxdbg.utils.FileHelper;
+import com.sun.istack.internal.logging.Logger;
+import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.PropertyConfigurator;
+
 
 import java.io.File;
+import java.util.Properties;
 
 public final class AndroidEmulate implements IEmulate {
 
     private AndroidEmulate() {
-    }
-
-    /**
-     * 后端类型, 待扩展
-     */
-    public enum BackendType {
-        Unicorn
     }
 
     /**
@@ -56,7 +56,9 @@ public final class AndroidEmulate implements IEmulate {
     }
 
     public File getSystemLibrary(String name) {
-        return null;
+        //name = name.replaceAll("\\+","p");
+        File libFile = FileHelper.getResourceFile(AndroidEmulate.class, "android/ld/" + name);
+        return libFile;
     }
 
     // 默认使用Unicorn
@@ -68,6 +70,12 @@ public final class AndroidEmulate implements IEmulate {
     public static class Builder {
         private boolean is32Bit = true;
         private BackendType backendType = BackendType.Unicorn;
+
+        public Builder(){
+            //Logger.getLogger(AndroidEmulate.class).info("123");
+            //PropertyConfigurator.configure(AndroidEmulate.class.getClassLoader().getResource("log4j.properties"));
+            //BasicConfigurator.configure();
+        }
 
         public Builder for32Bit() {
             is32Bit = true;

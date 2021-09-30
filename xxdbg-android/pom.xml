@@ -4,13 +4,15 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <parent>
+        <groupId>com.bxlong.parent</groupId>
+        <artifactId>Xxdbg-master</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
     <groupId>com.bxlong</groupId>
     <artifactId>Xxdbg</artifactId>
-    <packaging>pom</packaging>
     <version>1.0-SNAPSHOT</version>
-    <modules>
-        <module>xxdbg-android</module>
-    </modules>
 
     <dependencies>
 <!--        Unicorn-->
@@ -31,12 +33,14 @@
             <artifactId>keystone</artifactId>
             <version>0.9.5</version>
         </dependency>
-<!--        Jelf-->
+<!--        ElfParser-->
         <dependency>
-            <groupId>net.fornwall.bxlong</groupId>
-            <artifactId>Jelf</artifactId>
+            <groupId>com.bxlong.elf</groupId>
+            <artifactId>ElfParser</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
+
+
     </dependencies>
 
 

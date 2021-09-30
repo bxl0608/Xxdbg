@@ -177,7 +177,7 @@ CodeCache: size=245760Kb used=3517Kb max_used=3517Kb free=242242Kb
  compilation: enabled
 
 Compilation events (10 events):
-Event: 1.123 Thread 0x00007fc200827000  243       3       net.fornwall.jelf.BackingFile::readUnsignedByte (58 bytes)
+Event: 1.123 Thread 0x00007fc200827000  243       3       net.fornwall.jelf.com.bxlong.elf.BackingFile::readUnsignedByte (58 bytes)
 Event: 1.123 Thread 0x00007fc20083b000 nmethod 241 0x000000010ab48ed0 code [0x000000010ab49040, 0x000000010ab49390]
 Event: 1.123 Thread 0x00007fc202020800 nmethod 242 0x000000010ab3d8d0 code [0x000000010ab3da40, 0x000000010ab3dbe8]
 Event: 1.123 Thread 0x00007fc20201d800  244  s    4       java.lang.StringBuffer::append (13 bytes)

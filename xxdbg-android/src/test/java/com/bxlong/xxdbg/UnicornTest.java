@@ -24,7 +24,13 @@ public class UnicornTest {
         //byte[] code = {0x00, 0x01, (byte) 0xf0, 0x4f,};
 
         Unicorn unicorn = new Unicorn(Unicorn.UC_ARCH_ARM, Unicorn.UC_MODE_THUMB);
-        unicorn.mem_map(BASE, 2 * 1024 * 1024, Unicorn.UC_PROT_ALL);
+        //unicorn.mem_map(0x4011a000, 16384, 0);
+        unicorn.mem_map(0x40000000,528384,0);
+        unicorn.mem_protect(0x40000000,528383,5);
+//        unicorn.mem_map(0x40081000,40960,0);
+//        unicorn.mem_map(0x4008b000,585728,0);
+//        unicorn.mem_map(0x4011a000,0x4000,0);
+        /*
         //unicorn.mem_map(BASE+3 * 1024 * 1024, 2 * 1024 * 1024, Unicorn.UC_PROT_ALL);
         //EventMem Hook Test
         unicorn.hook_add(new EventMemHook() {
@@ -66,7 +72,7 @@ public class UnicornTest {
 
         unicorn.emu_start(BASE + 1, BASE + code.length, 0, 0);
         Long o = (Long) unicorn.reg_read(Unicorn.UC_ARM_REG_R0);
-        System.out.println(o.intValue());
+        System.out.println(o.intValue());*/
 
     }
 }

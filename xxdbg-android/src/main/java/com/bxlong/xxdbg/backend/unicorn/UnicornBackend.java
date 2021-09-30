@@ -1,10 +1,14 @@
 package com.bxlong.xxdbg.backend.unicorn;
 
+import com.bxlong.xxdbg.android.linker.Linker;
 import com.bxlong.xxdbg.backend.BackendException;
 import com.bxlong.xxdbg.backend.IBackend;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import unicorn.*;
 
 public class UnicornBackend implements IBackend {
+    private static final Logger logger = LoggerFactory.getLogger(UnicornBackend.class);
     private Unicorn unicorn;
 
 
@@ -33,14 +37,21 @@ public class UnicornBackend implements IBackend {
     }
 
     public void mem_write(long address, byte[] bytes) throws BackendException {
-        unicorn.mem_write(address, bytes);
+        try {
+            unicorn.mem_write(address, bytes);
+        }catch (Exception e){
+            logger.debug(String.format("unicorn backend mem_write exception address: 0x%x",address));
+        }
+
     }
 
     public void mem_map(long address, long size, int perms) throws BackendException {
+        logger.debug(String.format("unicorn backend mem_map address: 0x%x, size: 0x%x, perms: %d",address,size,perms));
         unicorn.mem_map(address, size, perms);
     }
 
     public void mem_protect(long address, long size, int perms) throws BackendException {
+        logger.debug(String.format("unicorn backend mem_protect address: 0x%x, size: 0x%x, perms: %d",address,size,perms));
         unicorn.mem_protect(address, size, perms);
     }
 
