@@ -1,0 +1,10 @@
+/Users/boxianglong/Library/Android/sdk/cmake/3.10.2.4988404/bin/cmake \
+-H./ \
+-B./ninja \
+-DANDROID_ABI=armeabi-v7a \
+-DANDROID_PLATFORM=android-23 \
+-DANDROID_NDK=/Users/boxianglong/Library/Android/sdk/ndk/21.0.6113669 \
+-DCMAKE_TOOLCHAIN_FILE=/Users/boxianglong/Library/Android/sdk/ndk/21.0.6113669/build/cmake/android.toolchain.cmake \
+-DCMAKE_MAKE_PROGRAM=/Users/boxianglong/Library/Android/sdk/cmake/3.10.2.4988404/bin/ninja \
+-G Ninja
+/Users/boxianglong/Library/Android/sdk/cmake/3.10.2.4988404/bin/ninja -C./ninja

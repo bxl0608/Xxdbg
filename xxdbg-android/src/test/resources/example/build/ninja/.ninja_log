@@ -1,0 +1,11 @@
+# ninja log v5
+0	390	1633935113	CMakeFiles/test-lib.dir/native-lib.cpp.o	7e17c1cb4309019b
+390	420	1633935113	/Users/boxianglong/Desktop/elf/Xxdbg-master/xxdbg-android/src/test/resources/example/libtest-lib.so	5fd84569e55668a0
+1	553	1633935260	CMakeFiles/test-lib.dir/native-lib.cpp.o	7e17c1cb4309019b
+553	613	1633935260	/Users/boxianglong/Desktop/elf/Xxdbg-master/xxdbg-android/src/test/resources/example/libtest-lib.so	5fd84569e55668a0
+1	467	1633935509	CMakeFiles/test-lib.dir/native-lib.cpp.o	7e17c1cb4309019b
+467	519	1633935509	/Users/boxianglong/Desktop/elf/Xxdbg-master/xxdbg-android/src/test/resources/example/libtest-lib.so	5fd84569e55668a0
+0	334	1633939580	CMakeFiles/test-lib.dir/native-lib.cpp.o	7e17c1cb4309019b
+334	387	1633939581	/Users/boxianglong/Desktop/elf/Xxdbg-master/xxdbg-android/src/test/resources/example/libtest-lib.so	5fd84569e55668a0
+1	494	1633943664	CMakeFiles/test-lib.dir/native-lib.cpp.o	7e17c1cb4309019b
+494	547	1633943664	/Users/boxianglong/Desktop/elf/Xxdbg-master/xxdbg-android/src/test/resources/example/libtest-lib.so	5fd84569e55668a0

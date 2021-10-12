@@ -6,6 +6,7 @@ import com.bxlong.xxdbg.backend.BackendType;
 import com.bxlong.xxdbg.memory.Memory;
 import com.bxlong.xxdbg.memory.Pointer;
 import com.bxlong.xxdbg.utils.FileHelper;
+import unicorn.ArmConst;
 
 public class AndroidEmulateTest {
     public static void main(String[] args) {
@@ -13,12 +14,18 @@ public class AndroidEmulateTest {
                 .for32Bit()
                 .setBackendType(BackendType.Unicorn)
                 .build();
-        //System.out.println(emulate);
+
         Memory memory = emulate.getMemory();
-        ElfModule elfModule = memory.loadLibrary(FileHelper.getResourceFile(AndroidEmulateTest.class, "example/libnative-lib.so"));
-        Pointer pointer = new Pointer(emulate,elfModule.getBase()+0x7fde4);
-        byte[] byteArray = pointer.getByteArray(0, 4);
-        System.out.println(byteArray);
+        ElfModule elfModule = memory.loadLibrary(FileHelper.getResourceFile(AndroidEmulateTest.class, "example/libtest-lib.so"),true);
+        emulate.traceCode(0,-1);
+        emulate.getBackend().reg_write(ArmConst.UC_ARM_REG_R2,4);
+        emulate.getBackend().reg_write(ArmConst.UC_ARM_REG_R3,6);
+        Number number = emulate.eFunc(elfModule.getBase() + 0x799, 0);
+        System.out.println(number.intValue());
+//        Pointer pointer = new Pointer(emulate,elfModule.getBase()+0x7fde4);
+//        byte[] byteArray = pointer.getByteArray(0, 4);
+//        System.out.println(byteArray);
+
 
 
     }
@@ -28,7 +35,7 @@ public class AndroidEmulateTest {
         StringBuilder sb = new StringBuilder("");
         for (int n = 0; n < bytes.length; n++) {
             strHex = Integer.toHexString(bytes[n] & 0xFF);
-            sb.append((strHex.length() == 1) ? "0" + strHex : strHex); // 每个字节由两个字符表示，位数不够，高位补0
+            sb.append((strHex.length() == 1) ? "0" + strHex : strHex);
         }
         return sb.toString().trim();
     }

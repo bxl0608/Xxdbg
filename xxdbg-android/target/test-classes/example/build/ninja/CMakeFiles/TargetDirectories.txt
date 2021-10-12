@@ -1,0 +1,3 @@
+/Users/boxianglong/Desktop/elf/Xxdbg-master/xxdbg-android/src/test/resources/example/build/ninja/CMakeFiles/rebuild_cache.dir
+/Users/boxianglong/Desktop/elf/Xxdbg-master/xxdbg-android/src/test/resources/example/build/ninja/CMakeFiles/edit_cache.dir
+/Users/boxianglong/Desktop/elf/Xxdbg-master/xxdbg-android/src/test/resources/example/build/ninja/CMakeFiles/test-lib.dir

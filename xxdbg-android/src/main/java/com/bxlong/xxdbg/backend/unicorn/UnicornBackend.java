@@ -7,13 +7,32 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import unicorn.*;
 
+import java.util.HashMap;
+
 public class UnicornBackend implements IBackend {
     private static final Logger logger = LoggerFactory.getLogger(UnicornBackend.class);
     private Unicorn unicorn;
+    private boolean is64Bit = false;
 
 
-    public UnicornBackend(boolean is632Bit) {
-        unicorn = new Unicorn(is632Bit ? Unicorn.UC_ARCH_ARM : Unicorn.UC_ARCH_ARM64, Unicorn.UC_MODE_THUMB);
+    public UnicornBackend(boolean is32Bit) {
+        is64Bit = !is32Bit;
+        unicorn = new Unicorn(is32Bit ? Unicorn.UC_ARCH_ARM : Unicorn.UC_ARCH_ARM64, Unicorn.UC_MODE_ARM);
+    }
+
+    @Override
+    public void enableVFP() {
+
+        if (is64Bit) {
+            long value = reg_read(Arm64Const.UC_ARM64_REG_CPACR_EL1).longValue();
+            value |= 0x300000; // set the FPEN bits
+            reg_write(Arm64Const.UC_ARM64_REG_CPACR_EL1, value);
+        } else {
+            int value = reg_read(ArmConst.UC_ARM_REG_C1_C0_2).intValue();
+            value |= (0xf << 20);
+            reg_write(ArmConst.UC_ARM_REG_C1_C0_2, value);
+            reg_write(ArmConst.UC_ARM_REG_FPEXC, 0x40000000);
+        }
     }
 
     public Number reg_read(int regId) throws BackendException {
@@ -41,6 +60,7 @@ public class UnicornBackend implements IBackend {
             unicorn.mem_write(address, bytes);
         }catch (Exception e){
             logger.debug(String.format("unicorn backend mem_write exception address: 0x%x",address));
+            throw e;
         }
 
     }

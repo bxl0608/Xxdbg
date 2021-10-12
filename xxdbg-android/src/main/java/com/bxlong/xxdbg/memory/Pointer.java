@@ -73,6 +73,7 @@ public class Pointer {
         write(offset, allocateBuffer(4).putInt(value).array(), 0, 4);
     }
 
+
     public void setPointer(long offset, Pointer aim) {
         long value;
         if (aim == null) {
@@ -86,5 +87,13 @@ public class Pointer {
         } else {
             setLong(offset, value);
         }
+    }
+
+    public Pointer share(long offset, long sz) {
+        if (offset == 0L) {
+            return this;
+        }
+
+        return new Pointer(emulate, peer + offset);
     }
 }

@@ -4,6 +4,8 @@ import unicorn.*;
 
 public interface IBackend {
 
+    void enableVFP();
+
     Number reg_read(int regId)throws BackendException;
 
     byte[] reg_read_vector(int regId) throws BackendException;

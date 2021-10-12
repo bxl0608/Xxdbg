@@ -3,7 +3,7 @@ package com.bxlong.xxdbg.android.linker;
 import com.bxlong.elf.*;
 import com.bxlong.xxdbg.android.emulater.IEmulate;
 import com.bxlong.xxdbg.android.module.ElfModule;
-import com.bxlong.xxdbg.backend.arm.Arm;
+import com.bxlong.xxdbg.backend.arm.ARM;
 import com.bxlong.xxdbg.memory.Pointer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
+import static com.bxlong.xxdbg.memory.Memory.MAP_ANONYMOUS;
 import static unicorn.UnicornConst.*;
 
 /**
@@ -22,7 +23,7 @@ import static unicorn.UnicornConst.*;
  */
 public class Linker {
     private static final Logger logger = LoggerFactory.getLogger(Linker.class);
-    private static long BASE = 0x40000000;
+
     IEmulate emulate;
     private List<ElfModule> loadedModules = new LinkedList<ElfModule>();
 
@@ -35,7 +36,7 @@ public class Linker {
      *
      * @param elfFile elf文件
      */
-    public ElfModule load_library(File elfFile) {
+    private ElfModule load_library(File elfFile) {
         String elfName = elfFile.getName();
         InputStream elfIs = open_library(elfFile);
 
@@ -68,14 +69,14 @@ public class Linker {
         if (!found_pt_load) {
             min_vaddr = 0x00000000;
         }
-        min_vaddr = Arm.PAGE_START(min_vaddr);
-        max_vaddr = Arm.PAGE_END(max_vaddr);
+        min_vaddr = ARM.PAGE_START(min_vaddr);
+        max_vaddr = ARM.PAGE_END(max_vaddr);
         long load_size_ = max_vaddr - min_vaddr;
         if (load_size_ <= 0) {
             throw new LinkerException(elfName + " has no loadable segments");
         }
 
-        long load_start_ = mmap(-1, load_size_, UC_PROT_ALL);
+        long load_start_ = emulate.getMemory().mmap(-1, (int) load_size_, UC_PROT_ALL,MAP_ANONYMOUS,-1,0);
 
         long load_bias = load_start_ - min_vaddr;
 
@@ -86,8 +87,8 @@ public class Linker {
             long seg_end = seg_start + load.mem_size;
 
             //Segment addresses in page.
-            long seg_page_start = Arm.PAGE_START(seg_start);
-            long seg_page_end = Arm.PAGE_END(seg_end);
+            long seg_page_start = ARM.PAGE_START(seg_start);
+            long seg_page_end = ARM.PAGE_END(seg_end);
 
             long seg_file_end = seg_start + load.file_size;
 
@@ -95,7 +96,7 @@ public class Linker {
             long file_start = load.offset;
             long file_end = file_start + load.file_size;
 
-            long file_page_start = Arm.PAGE_START(file_start);
+            long file_page_start = ARM.PAGE_START(file_start);
             long file_length = file_end - file_page_start;
 
             if (file_length != 0) {
@@ -104,16 +105,16 @@ public class Linker {
             }
 
             // 如果该段可写，且文件末跟页末尾有空余，需0填充
-            if ((load.flags & UC_PROT_WRITE) != 0 && Arm.PAGE_OFFSET(seg_file_end) > 0) {
-                byte[] zeros = new byte[(int) (Arm.PAGE_SIZE - Arm.PAGE_OFFSET(seg_file_end))];
+            if ((load.flags & UC_PROT_WRITE) != 0 && ARM.PAGE_OFFSET(seg_file_end) > 0) {
+                byte[] zeros = new byte[(int) (ARM.PAGE_SIZE - ARM.PAGE_OFFSET(seg_file_end))];
                 emulate.getBackend().mem_write(seg_file_end, zeros);
             }
 
-            seg_file_end = Arm.PAGE_END(seg_file_end);
+            seg_file_end = ARM.PAGE_END(seg_file_end);
             //如果该段的mem_size > file_size 且超过一个页，在android源码中，它将多出的页进行匿名映射，防止出现Bus error的情况
             if (seg_page_end - seg_file_end > 0) {
                 byte[] zeros = new byte[(int) (seg_page_end - seg_file_end)];
-                mwrite(Arm.PAGE_END(seg_file_end), zeros);
+                mwrite(ARM.PAGE_END(seg_file_end), zeros);
             }
         }
 
@@ -140,34 +141,19 @@ public class Linker {
      * @return
      */
     private boolean link_library(ElfModule elfModule) {
-        //TODO Relocation
         ElfFile elf = elfModule.getElfFile();
-//        long base = elfModule.getLoad_bias_();
-//        int phnum = elf.num_ph;
-//        int dynamic_count = 0;
-//        int dynamic_flag = 0;
         ElfDynamicStructure dynamicStructure = elf.getDynamicSegment().getDynamicStructure();
         if (dynamicStructure == null) {
             throw new LinkerException(elfModule.getName() + " can't find the dynamic structure");
         }
-//        for (int i = 0; i < phnum; i++) {
-//            ElfSegment programHeader = elf.getProgramHeader(i);
-//            if (programHeader.type == PT_DYNAMIC) {
-//                dynamic_count = (int) (programHeader.mem_size / 8);
-//                dynamic_flag = programHeader.flags;
-//                dynamicSegment = programHeader.
-//                break;
-//            }
-//        }
-        //int dt_needed = 0;
 
-        //ElfDynamicSection dynamicSection = elf.getDynamicSection();
         List<ElfModule> needs = new ArrayList<>();
         for (String need : dynamicStructure.getNeededLibraries()) {
             debug("[%s] need %s library.", elfModule.getName(), need);
             ElfModule neededLibrary = find_library(null, need);
             needs.add(neededLibrary);
         }
+        elfModule.setNeeds(needs);
 
         if (!relocation_library(elfModule, needs)) {
             debug("[%s] relocation error!");
@@ -188,6 +174,7 @@ public class Linker {
         long base = elfModule.getLoad_bias_();
 
         ElfDynamicStructure dynamicStructure = elf.getDynamicSegment().getDynamicStructure();
+
 
         for (MemoizedObject<ElfRelocation> rel_item : dynamicStructure.getRelocations()) {
             ElfRelocation rel = rel_item.getValue();
@@ -238,11 +225,11 @@ public class Linker {
             switch (type) {
                 case IEmulate.R_ARM_JUMP_SLOT:
                 case IEmulate.R_ARM_GLOB_DAT:
-
                     relocate_p.setPointer(0, symbol_addr_p);
                     break;
                 case IEmulate.R_ARM_ABS32:
-                    relocate_p.setPointer(reloc, symbol_addr_p);
+                    symbol_addr_p.share(relocate_p.getInt(0),0);
+                    relocate_p.setPointer(0, symbol_addr_p);
                     break;
                 case IEmulate.R_ARM_REL32:
                     relocate_p.setPointer(reloc - rel.offset(), symbol_addr_p);
@@ -266,37 +253,46 @@ public class Linker {
      * @param needs
      */
     private ElfSymbol do_look_up(ElfModule elfModule, String sym_name, List<ElfModule> needs) {
-
-        //long hash = nameHash(sym_name);
         for (ElfModule need : needs) {
-            ElfFile elf = need.getElfFile();
-            ElfSymbolStructure value = elf.getDynamicSegment().getDynamicStructure().getSymbolTable().getValue();
-            ElfSymbol symbol = value.getELFSymbolByName(sym_name);
-            if (symbol != null) {
-                symbol.setLoad_bias_(need.getLoad_bias_());
-                return symbol;
+            ElfSymbol sym = findSym(need, sym_name);
+            if (sym != null){
+                return sym;
             }
         }
-        //debug("[%s] hash is : %d", sym_name, hash);
+        ElfSymbol sym = findSym(elfModule, sym_name);
+        return sym;
+    }
+
+    private ElfSymbol findSym(ElfModule module, String sys_name){
+        if (module == null){
+            return null;
+        }
+        ElfFile elf = module.getElfFile();
+        ElfSymbolStructure value = elf.getDynamicSegment().getDynamicStructure().getSymbolTable().getValue();
+        ElfSymbol symbol = value.getELFSymbolByName(sys_name);
+        if (symbol != null) {
+            symbol.setLoad_bias_(module.getLoad_bias_());
+            return symbol;
+        }
         return null;
     }
 
-    private long mmap(long address, long size, int perms/*, byte[] value*/) {
-
-        if (address < 0) {
-            address = BASE;
-        }
-        try {
-            size = Arm.PAGE_END(size);
-            emulate.getBackend().mem_map(address, size, perms);
-            BASE += size;
-        } catch (Exception e) {
-            debug("addr: 0x%x, map failed!", address);
-            throw new LinkerException("memory failed! address: 0x" + Long.toHexString(address));
-        }
-
-        return address;
-    }
+//    private long mmap(long address, long size, int perms/*, byte[] value*/) {
+//
+//        if (address < 0) {
+//            address = BASE;
+//        }
+//        try {
+//            size = ARM.PAGE_END(size);
+//            emulate.getBackend().mem_map(address, size, perms);
+//            BASE += size;
+//        } catch (Exception e) {
+//            debug("addr: 0x%x, map failed!", address);
+//            throw new LinkerException("memory failed! address: 0x" + Long.toHexString(address));
+//        }
+//
+//        return address;
+//    }
 
     private void mwrite(long address, byte[] data) {
         if (data != null) {
@@ -389,13 +385,17 @@ public class Linker {
     }
 
     /**
-     * 执行初始化函数，且不对外开放
+     * 执行初始化函数
      *
      * @param module
      * @return
      */
     private boolean call_constructors(ElfModule module) {
-        //TODO CallConstructors
+        // 先调用Need库
+        for (ElfModule m : module.getNeeds()){
+            call_constructors(m);
+        }
+        //执行初始化
         return false;
     }
 
@@ -408,10 +408,28 @@ public class Linker {
      */
     public ElfModule dl_open(File elfFile, boolean isCallConstructors) {
         ElfModule library = find_library(elfFile, null);
-        if (isCallConstructors && !library.isInit()) {
+        if (isCallConstructors && library.isLinked()) {
             call_constructors(library);
         }
         return library;
+    }
+
+    public String getElfModuleNameByAddress(long address){
+        for (ElfModule module : loadedModules){
+            if (address < module.getBase()+module.getSize() && address > module.getBase()){
+                return module.getName();
+            }
+        }
+        return null;
+    }
+
+    public ElfModule getElfModuleByAddress(long address){
+        for (ElfModule module : loadedModules){
+            if (address < module.getBase()+module.getSize() && address > module.getBase()){
+                return module;
+            }
+        }
+        return null;
     }
 
     private void debug(String format, Object... args) {
