@@ -35,7 +35,7 @@ public class UnicornTest {
 //        unicorn.mem_map(0x40081000,40960,0);
 //        unicorn.mem_map(0x4008b000,585728,0);
 //        unicorn.mem_map(0x4011a000,0x4000,0);
-        unicorn.mem_map(BASE , 40 * 1024 * 1024, Unicorn.UC_PROT_ALL);
+        unicorn.mem_map(BASE, 40 * 1024 * 1024, Unicorn.UC_PROT_ALL);
 
         unicorn.mem_write(BASE, code);
         /*
@@ -53,10 +53,10 @@ public class UnicornTest {
         unicorn.hook_add_new(new InterruptHook() {
             @Override
             public void hook(Unicorn u, int intno, Object user) {
-                u.reg_write(ArmConst.UC_ARM_REG_R1,4);
-                System.out.print(String.format(">>> Interrupt occur, intno: %d\n",intno));
+                u.reg_write(ArmConst.UC_ARM_REG_R1, 4);
+                System.out.print(String.format(">>> Interrupt occur, intno: %d\n", intno));
             }
-        },null);
+        }, null);
         unicorn.hook_add(new CodeHook() {
             public void hook(Unicorn u, long address, int size, Object user) {
                 System.out.print(String.format(">>> Tracing instruction at 0x%x, instruction size = 0x%x\n", address, size));
@@ -99,7 +99,7 @@ public class UnicornTest {
         }, BASE + 0x100, BASE + 0x102, null);
 */
         //unicorn.reg_write(ArmConst.UC_ARM_REG_LR,LR);
-        unicorn.emu_start(BASE+1, BASE + code.length, 0, 0);
+        unicorn.emu_start(BASE + 1, BASE + code.length, 0, 0);
         Long o = (Long) unicorn.reg_read(Unicorn.UC_ARM_REG_R0);
         System.out.println(Long.toHexString(o.intValue()));
 
