@@ -2,17 +2,15 @@ package com.bxlong.xxdbg.android.emulater;
 
 import capstone.Capstone;
 import com.bxlong.xxdbg.android.debug.Debugger;
-import com.bxlong.xxdbg.android.linker.Linker;
 import com.bxlong.xxdbg.android.module.ElfModule;
 import com.bxlong.xxdbg.backend.BackendType;
 import com.bxlong.xxdbg.backend.IBackend;
 import com.bxlong.xxdbg.backend.unicorn.UnicornBackend;
 import com.bxlong.xxdbg.linux.SystemCallHandler;
+import com.bxlong.xxdbg.linux.file.FileSystem;
+import com.bxlong.xxdbg.linux.file.IFileSystem;
 import com.bxlong.xxdbg.memory.Memory;
-import com.bxlong.xxdbg.utils.FileHelper;
-import com.sun.jna.Pointer;
-import org.apache.log4j.BasicConfigurator;
-import org.apache.log4j.PropertyConfigurator;
+import com.bxlong.xxdbg.memory.Pointer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import unicorn.Arm64Const;
@@ -22,8 +20,9 @@ import unicorn.Unicorn;
 
 
 import java.io.File;
+import java.lang.management.ManagementFactory;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
 
 public final class AndroidEmulate implements IEmulate {
 
@@ -31,7 +30,21 @@ public final class AndroidEmulate implements IEmulate {
 
     boolean running = false;
 
+    public void setProcessName(String processName) {
+        this.processName = processName;
+    }
+
+    private String processName = "xxdbg";
+
+    private IFileSystem fileSystem = null;
+
+    private final int pid;
+
+
     private AndroidEmulate() {
+        String name = ManagementFactory.getRuntimeMXBean().getName();
+        String pid = name.split("@")[0];
+        this.pid = Integer.parseInt(pid);
     }
 
     /**
@@ -42,8 +55,8 @@ public final class AndroidEmulate implements IEmulate {
     /**
      * 初始化操作
      */
-    @Override
-    public void init() {
+    private void init() {
+        fileSystem = new FileSystem(this);
         //开启VFP
         backend.enableVFP();
         //初始化内存(栈 \ LR)
@@ -51,16 +64,80 @@ public final class AndroidEmulate implements IEmulate {
         // 系统调用处理
         backend.hook_add_new(new SystemCallHandler(), this);
 
-        initializeTLS();
+        initializeTLS(new String[] {
+                "ANDROID_DATA=/data",
+                "ANDROID_ROOT=/system"
+        });
 
     }
 
     /**
      * http://androidxref.com/6.0.0_r5/xref/bionic/libc/bionic/libc_init_common.cpp
      */
-    private void initializeTLS() {
-        //backend.mem_map(0x1000,0x1000,Unicorn.UC_PROT_ALL);
-        //backend.reg_write(ArmConst.UC_ARM_REG_C13_C0_3, 0x1000);
+    Pointer errno = null;
+    private Pointer initializeTLS(String[] envs) {
+        final Pointer thread = memory.allocateStack(0x400);
+
+        final Pointer __stack_chk_guard = memory.allocateStack(getPointSize());
+
+        final Pointer programName = memory.writeStackString(getProcessName());
+
+        final Pointer programNamePointer = memory.allocateStack(getPointSize());
+        assert programNamePointer != null;
+        programNamePointer.setPointer(0, programName);
+
+        final Pointer auxv = memory.allocateStack(0x100);
+        assert auxv != null;
+        if (is32Bit()) {
+            auxv.setInt(0, 25);
+        } else {
+            auxv.setLong(0, 25);
+        }
+        auxv.setPointer(getPointSize(), __stack_chk_guard);
+
+        List<String> envList = new ArrayList<>();
+        for (String env : envs) {
+            int index = env.indexOf('=');
+            if (index != -1) {
+                envList.add(env);
+            }
+        }
+        final Pointer environ = memory.allocateStack(getPointSize() * (envList.size() + 1));
+        assert environ != null;
+        Pointer pointer = environ;
+        for (String env : envList) {
+            Pointer envPointer = memory.writeStackString(env);
+            pointer.setPointer(0, envPointer);
+            pointer = pointer.share(getPointSize());
+        }
+        pointer.setPointer(0, null);
+
+        final Pointer argv = memory.allocateStack(0x100);
+        assert argv != null;
+        argv.setPointer(getPointSize(), programNamePointer);
+        argv.setPointer(2L * getPointSize(), environ);
+        argv.setPointer(3L * getPointSize(), auxv);
+
+        final Pointer tls = memory.allocateStack(0x80 * 4); // tls size
+        assert tls != null;
+        tls.setPointer(getPointSize(), thread);
+        this.errno = tls.share(getPointSize() * 2L);
+        tls.setPointer(getPointSize() * 3L, argv);
+
+        if (is32Bit()) {
+            backend.reg_write(ArmConst.UC_ARM_REG_C13_C0_3, tls.peer);
+        } else {
+            backend.reg_write(Arm64Const.UC_ARM64_REG_TPIDR_EL0, tls.peer);
+        }
+
+        long sp = memory.getStackPoint();
+        sp &= (~(is64Bit() ? 15 : 7));
+        memory.setStackPoint(sp);
+
+//        if (log.isDebugEnabled()) {
+        debug("initializeTLS tls=" + tls + ", argv=" + argv + ", auxv=" + auxv + ", thread=" + thread + ", environ=" + environ + ", sp=0x" + Long.toHexString(memory.getStackPoint()));
+//        }
+        return argv.share(2L * getPointSize(), 0);
     }
 
     public boolean is32Bit() {
@@ -96,9 +173,7 @@ public final class AndroidEmulate implements IEmulate {
     }
 
     public File getSystemLibrary(String name) {
-        //name = name.replaceAll("\\+","p");
-        File libFile = FileHelper.getResourceFile(AndroidEmulate.class, "android/ld/" + name);
-        return libFile;
+        return fileSystem.getLDFile(name);
     }
 
     /**
@@ -108,10 +183,14 @@ public final class AndroidEmulate implements IEmulate {
      * @param until
      * @return
      */
-    @Override
     public Number eFunc(long begin, long until) {
         backend.reg_write(ArmConst.UC_ARM_REG_LR, LR);
-        return emulate(begin, LR, 0);
+        return emulate(begin, until, 0);
+    }
+
+    @Override
+    public Number eInit(long begin) {
+        return eFunc(begin,LR);
     }
 
     @Override
@@ -120,9 +199,6 @@ public final class AndroidEmulate implements IEmulate {
         final Capstone cs_arm = new Capstone(Capstone.CS_ARCH_ARM, Capstone.CS_MODE_ARM);
         backend.hook_add_new(new CodeHook() {
             public void hook(Unicorn u, long address, int size, Object user) {
-                if (Long.toHexString(address).endsWith("27e")) {
-                    System.out.println(123);
-                }
                 byte[] code = u.mem_read(address, size);
                 Capstone.CsInsn[] disasm;
                 Long cpsr = (Long) u.reg_read(ArmConst.UC_ARM_REG_CPSR);
@@ -135,6 +211,16 @@ public final class AndroidEmulate implements IEmulate {
                 System.out.println(String.format(">>> Tracing ins at [%20s] [0x%x]: %s %s", elfModule.getName(), disasm[0].address - elfModule.getBase(), disasm[0].mnemonic, disasm[0].opStr));
             }
         }, begin, end, null);
+    }
+
+    @Override
+    public int getPointSize() {
+        return is32Bit ? 4 : 8;
+    }
+
+    @Override
+    public String getProcessName() {
+        return processName;
     }
 
     protected final Number emulate(long begin, long until, long timeout) {
@@ -220,6 +306,25 @@ public final class AndroidEmulate implements IEmulate {
             emulate.init();
             return emulate;
         }
+    }
+
+    public Pointer getErrnoPointer(){
+        return errno;
+    }
+
+    @Override
+    public IFileSystem getFileSystem() {
+        return fileSystem;
+    }
+
+    @Override
+    public int getPageAlign() {
+        return 0x1000;
+    }
+
+    @Override
+    public int getPid() {
+        return 0;
     }
 
     private void debug(String format, Object... args) {

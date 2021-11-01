@@ -76,7 +76,7 @@ public class Linker {
             throw new LinkerException(elfName + " has no loadable segments");
         }
 
-        long load_start_ = emulate.getMemory().mmap(-1, (int) load_size_, UC_PROT_ALL,MAP_ANONYMOUS,-1,0);
+        long load_start_ = emulate.getMemory().mmap(-1, (int) load_size_, UC_PROT_ALL, MAP_ANONYMOUS, -1, 0);
 
         long load_bias = load_start_ - min_vaddr;
 
@@ -181,7 +181,6 @@ public class Linker {
             int type = rel.type();
             int sym = rel.sym();
             long reloc = rel.offset() + base;
-
             // R_*_NONE
             if (type == 0) {
                 continue;
@@ -220,6 +219,8 @@ public class Linker {
 
             //开始真正重定位
             Pointer relocate_p = new Pointer(emulate, reloc);
+
+
             Pointer symbol_addr_p = new Pointer(emulate, symbol_addr);
 
             switch (type) {
@@ -228,14 +229,18 @@ public class Linker {
                     relocate_p.setPointer(0, symbol_addr_p);
                     break;
                 case IEmulate.R_ARM_ABS32:
-                    symbol_addr_p.share(relocate_p.getInt(0),0);
+                    symbol_addr_p.share(relocate_p.getInt(0), 0);
                     relocate_p.setPointer(0, symbol_addr_p);
                     break;
                 case IEmulate.R_ARM_REL32:
                     relocate_p.setPointer(reloc - rel.offset(), symbol_addr_p);
                     break;
                 case IEmulate.R_ARM_RELATIVE:
-                    relocate_p.setPointer(0, relocate_p);
+                    long offset = relocate_p.getInt(0);
+                    if (symbol != null) {
+                        throw new LinkerException("R_ARM_RELATIVE: sym=" + sym);
+                    }
+                    relocate_p.setPointer(0, Pointer.point(emulate, base + offset));
                     break;
                 case IEmulate.R_ARM_COPY:
                 default:
@@ -252,6 +257,8 @@ public class Linker {
      * @param sym_name
      * @param needs
      */
+
+
     private ElfSymbol do_look_up(ElfModule elfModule, String sym_name, List<ElfModule> needs) {
         for (ElfModule need : needs) {
             ElfSymbol sym = findSym(need, sym_name);
@@ -263,13 +270,14 @@ public class Linker {
         return sym;
     }
 
-    private ElfSymbol findSym(ElfModule module, String sys_name){
-        if (module == null){
+    private ElfSymbol findSym(ElfModule module, String sys_name) {
+        if (module == null) {
             return null;
         }
+
         ElfFile elf = module.getElfFile();
         ElfSymbolStructure value = elf.getDynamicSegment().getDynamicStructure().getSymbolTable().getValue();
-        ElfSymbol symbol = value.getELFSymbolByName(sys_name);
+        ElfSymbol symbol = value.getELFSymbolByName(sys_name,true);
         if (symbol != null) {
             symbol.setLoad_bias_(module.getLoad_bias_());
             return symbol;
@@ -390,13 +398,33 @@ public class Linker {
      * @param module
      * @return
      */
-    private boolean call_constructors(ElfModule module) {
+    private void call_constructors(ElfModule module) {
         // 先调用Need库
-        for (ElfModule m : module.getNeeds()){
+        for (ElfModule m : module.getNeeds()) {
             call_constructors(m);
         }
+        if (module.isInit()) {
+            return;
+        }
+
+        ElfDynamicStructure dynamicStructure = module.getElfFile().getDynamicSegment().getDynamicStructure();
+        long initArrayOffset = dynamicStructure.getInitArrayOffset();
+
+        if (initArrayOffset <= 0) {
+            return;
+        }
+
+        int initArraySize = dynamicStructure.getInitArraySize();
+        int initArrayCount = initArraySize / emulate.getPointSize();
+        for (int i = 0; i < initArrayCount; i++) {
+            long offset = module.getLoad_bias_() + initArrayOffset + i * emulate.getPointSize();
+            Pointer pointer = Pointer.point(emulate, offset);
+            long fun_addr = pointer.getInt(0);
+            debug("the [%s] init function addr: 0x%x", module.getName(), fun_addr);
+            emulate.eInit(fun_addr);
+        }
+        module.setInit(true);
         //执行初始化
-        return false;
     }
 
     /**
@@ -414,18 +442,18 @@ public class Linker {
         return library;
     }
 
-    public String getElfModuleNameByAddress(long address){
-        for (ElfModule module : loadedModules){
-            if (address < module.getBase()+module.getSize() && address > module.getBase()){
+    public String getElfModuleNameByAddress(long address) {
+        for (ElfModule module : loadedModules) {
+            if (address < module.getBase() + module.getSize() && address > module.getBase()) {
                 return module.getName();
             }
         }
         return null;
     }
 
-    public ElfModule getElfModuleByAddress(long address){
-        for (ElfModule module : loadedModules){
-            if (address < module.getBase()+module.getSize() && address > module.getBase()){
+    public ElfModule getElfModuleByAddress(long address) {
+        for (ElfModule module : loadedModules) {
+            if (address < module.getBase() + module.getSize() && address > module.getBase()) {
                 return module;
             }
         }

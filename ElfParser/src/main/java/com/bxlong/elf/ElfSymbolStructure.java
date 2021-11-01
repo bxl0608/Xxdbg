@@ -2,7 +2,7 @@ package com.bxlong.elf;
 
 import java.io.IOException;
 
-public class ElfSymbolStructure {
+public class ElfSymbolStructure implements SymbolLocator{
 
     private final ElfParser parser;
     private final long offset;
@@ -31,11 +31,27 @@ public class ElfSymbolStructure {
         return this.hashTable.getValue().findSymbolByAddress(this, addr);
     }
 
-    public ElfSymbol getELFSymbolByName(String name) {
+    private final int STB_GLOBAL = 1;
+    private final int STB_WEAK = 2;
+
+    public ElfSymbol getELFSymbolByName(String name, boolean isRel) {
         if (hashTable == null) {
             return null;
         }
-        return hashTable.getValue().getSymbol(this, name);
+        ElfSymbol sym = hashTable.getValue().getSymbol(this, name);
+        if (isRel && sym != null){
+            switch (sym.getBinding()){
+                case STB_GLOBAL:
+                case STB_WEAK:
+                    if (sym.isUndef()){
+                        return null;
+                    }
+                    return sym;
+            }
+            return null;
+        }else {
+            return sym;
+        }
     }
 
 }

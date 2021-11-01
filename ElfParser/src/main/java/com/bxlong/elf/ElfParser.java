@@ -110,6 +110,22 @@ class ElfParser {
 		throw new ElfException("Cannot find segment for address " + Long.toHexString(address));
 	}
 
+	ByteBuffer readBuffer(int length) {
+		ByteBuffer byteBuffer = ByteBuffer.allocate(length);
+		byte[] bytes = new byte[length];
+		backingFile.read(bytes);
+		byteBuffer.put(bytes);
+		byteBuffer.position(0);
+		return byteBuffer;
+//		int limit = fsFile.limit();
+//		try {
+//			fsFile.limit(fsFile.position() + length);
+//			return fsFile.slice();
+//		} finally {
+//			fsFile.limit(limit);
+//		}
+	}
+
 	public int read(byte[] data) {
 	    return backingFile.read(data);
 	}

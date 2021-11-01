@@ -1,6 +1,8 @@
 package com.bxlong.xxdbg;
 
+import com.bxlong.elf.ElfSymbol;
 import com.bxlong.xxdbg.android.emulater.AndroidEmulate;
+import com.bxlong.xxdbg.android.emulater.IEmulate;
 import com.bxlong.xxdbg.android.module.ElfModule;
 import com.bxlong.xxdbg.backend.BackendType;
 import com.bxlong.xxdbg.memory.Memory;
@@ -16,17 +18,15 @@ public class AndroidEmulateTest {
                 .build();
 
         Memory memory = emulate.getMemory();
+        //emulate.traceCode(0,-1);
         ElfModule elfModule = memory.loadLibrary(FileHelper.getResourceFile(AndroidEmulateTest.class, "example/libtest-lib.so"),true);
-        emulate.traceCode(0,-1);
+
         emulate.getBackend().reg_write(ArmConst.UC_ARM_REG_R2,4);
         emulate.getBackend().reg_write(ArmConst.UC_ARM_REG_R3,6);
-        Number number = emulate.eFunc(elfModule.getBase() + 0x799, 0);
+        ElfSymbol add = elfModule.getElfFile().getDynamicSegment().getDynamicStructure().getSymbolTable().getValue().getELFSymbolByName("Java_com_dta_lesson5_MainActivity_add",false);
+        //emulate.traceCode(0,-1);
+        Number number = emulate.eFunc(elfModule.getBase() + add.value, 0);
         System.out.println(number.intValue());
-//        Pointer pointer = new Pointer(emulate,elfModule.getBase()+0x7fde4);
-//        byte[] byteArray = pointer.getByteArray(0, 4);
-//        System.out.println(byteArray);
-
-
 
     }
 

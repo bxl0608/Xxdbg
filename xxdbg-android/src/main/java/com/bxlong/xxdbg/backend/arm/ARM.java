@@ -22,7 +22,13 @@ public class ARM {
         return PAGE_SIZE;
     }
 
-//    public static long alignSize(long size, long align) {
-//        return ((size - 1) / align + 1) * align;
-//    }
+    private static final int ALIGN_SIZE_BASE = 0x10;
+
+    public static int alignSize(int size) {
+        return (int) alignSize(size, ALIGN_SIZE_BASE);
+    }
+
+    public static long alignSize(long size, long align) {
+        return ((size - 1) / align + 1) * align;
+    }
 }

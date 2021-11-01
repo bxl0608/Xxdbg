@@ -6,14 +6,14 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="xxdbg-android" />
         <module name="ElfParser" />
+        <module name="xxdbg-android" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="ElfParser" target="8" />
-      <module name="xxdbg-android" target="8" />
-      <module name="Xxdbg-master" target="8" />
+      <module name="ElfParser" target="1.7" />
+      <module name="xxdbg-android" target="1.7" />
+      <module name="Xxdbg-master" target="1.7" />
     </bytecodeTargetLevel>
   </component>
 </project>

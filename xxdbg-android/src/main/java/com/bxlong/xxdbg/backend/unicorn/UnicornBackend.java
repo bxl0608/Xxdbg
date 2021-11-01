@@ -76,6 +76,7 @@ public class UnicornBackend implements IBackend {
     }
 
     public void mem_unmap(long address, long size) throws BackendException {
+        logger.debug(String.format("unicorn backend mem_unmap address: 0x%x, size: 0x%x",address,size));
         unicorn.mem_unmap(address, size);
     }
 

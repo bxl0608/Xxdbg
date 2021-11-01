@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -161,7 +162,7 @@ public class ElfDynamicStructure {
     private int androidRelSize, androidRelASize;
 
     private MemoizedObject<ElfRelocation>[] rel, pltRel;
-    //private MemoizedObject<AndroidRelocation> androidRelocation;
+    private MemoizedObject<AndroidRelocation> androidRelocation;
 
     ElfDynamicStructure(final ElfParser parser, long offset, int size) throws IOException {
         parser.seek(offset);
@@ -369,39 +370,39 @@ public class ElfDynamicStructure {
             }*/
         }
 //
-//		if (androidRelOffset > 0) {
-//			assert symbolStructure != null;
-//			androidRelocation = new MemoizedObject<AndroidRelocation>() {
-//				@Override
-//				protected AndroidRelocation computeValue() throws ElfException, IOException {
-//					parser.seek(parser.virtualMemoryAddrToFileOffset(androidRelOffset));
-//					byte[] magic = new byte[4];
-//					parser.read(magic);
-//					if (androidRelSize >= 4 && "APS2".equals(new String(magic))) {
-//						ByteBuffer androidRelData = parser.readBuffer(androidRelSize - 4);
-//						return new AndroidRelocation(parser, symbolStructure.getValue(), androidRelData, false);
-//					} else {
-//						throw new IllegalStateException("bad android relocation header.");
-//					}
-//				}
-//			};
-//		} else if (androidRelAOffset > 0) {
-//			assert symbolStructure != null;
-//			androidRelocation = new MemoizedObject<AndroidRelocation>() {
-//				@Override
-//				protected AndroidRelocation computeValue() throws ElfException, IOException {
-//					parser.seek(parser.virtualMemoryAddrToFileOffset(androidRelAOffset));
-//					byte[] magic = new byte[4];
-//					parser.read(magic);
-//					if (androidRelASize >= 4 && "APS2".equals(new String(magic))) {
-//						ByteBuffer androidRelData = parser.readBuffer(androidRelASize - 4);
-//						return new AndroidRelocation(parser, symbolStructure.getValue(), androidRelData, true);
-//					} else {
-//						throw new IllegalStateException("bad android relocation header.");
-//					}
-//				}
-//			};
-//		}
+		if (androidRelOffset > 0) {
+			assert symbolStructure != null;
+			androidRelocation = new MemoizedObject<AndroidRelocation>() {
+				@Override
+				protected AndroidRelocation computeValue() throws ElfException {
+					parser.seek(parser.virtualMemoryAddrToFileOffset(androidRelOffset));
+					byte[] magic = new byte[4];
+					parser.read(magic);
+					if (androidRelSize >= 4 && "APS2".equals(new String(magic))) {
+						ByteBuffer androidRelData = parser.readBuffer(androidRelSize - 4);
+						return new AndroidRelocation(parser, symbolStructure.getValue(), androidRelData, false);
+					} else {
+						throw new IllegalStateException("bad android relocation header.");
+					}
+				}
+			};
+		} else if (androidRelAOffset > 0) {
+			assert symbolStructure != null;
+			androidRelocation = new MemoizedObject<AndroidRelocation>() {
+				@Override
+				protected AndroidRelocation computeValue() throws ElfException {
+					parser.seek(parser.virtualMemoryAddrToFileOffset(androidRelAOffset));
+					byte[] magic = new byte[4];
+					parser.read(magic);
+					if (androidRelASize >= 4 && "APS2".equals(new String(magic))) {
+						ByteBuffer androidRelData = parser.readBuffer(androidRelASize - 4);
+						return new AndroidRelocation(parser, symbolStructure.getValue(), androidRelData, true);
+					} else {
+						throw new IllegalStateException("bad android relocation header.");
+					}
+				}
+			};
+		}
 //
 		if (initArraySize > 0) {
 			initArray = new MemoizedObject<ElfInitArray>() {
@@ -478,17 +479,18 @@ public class ElfDynamicStructure {
 
 	public Collection<MemoizedObject<ElfRelocation>> getRelocations() {
         List<MemoizedObject<ElfRelocation>> list = new ArrayList<>();
-//		if (androidRelocation != null) {
-//			for (MemoizedObject<ElfRelocation> elfRelocationMemoizedObject : androidRelocation.getValue()) {
-//				list.add(elfRelocationMemoizedObject);
-//			}
-//		}
+		if (androidRelocation != null) {
+			for (MemoizedObject<ElfRelocation> elfRelocationMemoizedObject : androidRelocation.getValue()) {
+				list.add(elfRelocationMemoizedObject);
+			}
+		}
         if (rel != null) {
             Collections.addAll(list, rel);
         }
         if (pltRel != null) {
             Collections.addAll(list, pltRel);
         }
+        //System.err.println(list.size());
         return list;
     }
 

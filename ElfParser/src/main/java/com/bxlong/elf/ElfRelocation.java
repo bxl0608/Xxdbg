@@ -6,7 +6,7 @@ import java.util.Objects;
 public class ElfRelocation implements Cloneable {
 
     private final int objectSize;
-    private final ElfSymbolStructure symtab;
+    private final SymbolLocator symtab;
 
     long offset;
     long info;
@@ -37,11 +37,11 @@ public class ElfRelocation implements Cloneable {
         return (ElfRelocation) super.clone();
     }
 //
-//    ElfRelocation(int objectSize, SymbolLocator symtab) {
-//        this.objectSize = objectSize;
-//        this.symtab = symtab;
-//        this.android = true;
-//    }
+    ElfRelocation(int objectSize, SymbolLocator symtab) {
+        this.objectSize = objectSize;
+        this.symtab = symtab;
+        this.android = true;
+    }
 
     public long offset() {
         return offset;

@@ -36,7 +36,7 @@ public class UnicornTest {
 //        unicorn.mem_map(0x4008b000,585728,0);
 //        unicorn.mem_map(0x4011a000,0x4000,0);
         unicorn.mem_map(BASE, 40 * 1024 * 1024, Unicorn.UC_PROT_ALL);
-
+        unicorn.mem_protect(BASE,1024 * 1024,UnicornConst.UC_PROT_WRITE);
         unicorn.mem_write(BASE, code);
         /*
 

@@ -2,7 +2,9 @@ package com.bxlong.xxdbg.android.emulater;
 
 
 import com.bxlong.xxdbg.backend.IBackend;
+import com.bxlong.xxdbg.linux.file.IFileSystem;
 import com.bxlong.xxdbg.memory.Memory;
+import com.bxlong.xxdbg.memory.Pointer;
 
 import java.io.File;
 
@@ -18,8 +20,6 @@ public interface IEmulate {
 
     long LR = 0xffff0000L;
 
-    void init();
-
     boolean is32Bit();
 
     boolean is64Bit();
@@ -30,8 +30,19 @@ public interface IEmulate {
 
     File getSystemLibrary(String name);
 
-    Number eFunc(long begin, long until);
+    Number eInit(long begin);
 
     void traceCode(long begin, long end);
 
+    int getPointSize();
+
+    String getProcessName();
+
+    Pointer getErrnoPointer();
+
+    IFileSystem getFileSystem();
+
+    int getPageAlign();
+
+    int getPid();
 }
